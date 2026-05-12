@@ -1,1 +1,0 @@
-public enum OrderType{LIMIT,MARKET,CANCEL}
