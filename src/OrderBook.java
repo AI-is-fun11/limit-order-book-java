@@ -19,17 +19,60 @@ public class OrderBook{
         asks=new TreeMap<>();
         orderMap=new HashMap<>();
     } 
-    public Integer getBestBid() {
-     if (bids.isEmpty()) {
-        return null;
+
+
+
+
+    public Integer getBestBid() 
+    {
+    
+     while (!bids.isEmpty())
+    {
+     int bestBid=bids.firstKey();
+     Queue<Order> queue= bids.get(bestBid);
+
+     while (!queue.isEmpty() && queue.peek().isFilled())
+
+     {
+     // Orders with 0 qty are removed from the book
+       queue.poll();
      }
-     return bids.firstKey();
-}
+     if (!queue.isEmpty())
+     {
+    
+       return bestBid;
+     }
+
+     // Empty price levels are removed from the book so that best bid is always at a price with non zero depth
+     bids.remove(bestBid);
+
+    }
+    return null;
+    }
+
+
     public Integer getBestAsk() {
-     if (asks.isEmpty()) {
-        return null;
+     
+     
+     
+     
+     while(!asks.isEmpty()){
+     int bestAsk= asks.firstKey();
+     Queue<Order> queue=asks.get(bestAsk);
+     while (!queue.isEmpty() && queue.peek().isFilled())
+     {
+        queue.poll();
+    
      }
-     return asks.firstKey();
+     
+     if(!queue.isEmpty()){
+        return bestAsk;
+     }
+     
+     asks.remove(bestAsk);
+     }
+
+     return null;
 }
     public Integer getSpread() {
      Integer bestBid = getBestBid();
@@ -51,10 +94,12 @@ public class OrderBook{
 
      return (bestBid + bestAsk) / 2.0;
 }
+//Limit orders are those with a price associated, they are matched accordingly and leftovers are added to the queues
 public List<Trade> addLimitOrder(Order order) {
     TreeMap<Integer, Queue<Order>> oppositeSide;
     List<Trade> trades = new ArrayList<>();
     TreeMap<Integer, Queue<Order>> bookSide;
+
     if (order.getSide() == Side.BUY) 
     {
     oppositeSide = asks;
@@ -181,7 +226,67 @@ else{
 }
 
 
+public List<Trade> addMarketOrder(Order order)
+{
+ List<Trade> trades= new ArrayList<>();
+ TreeMap<Integer,Queue<Order>> oppositeSide;
+ if (order.getSide() == Side.BUY) 
+    {
+    oppositeSide = asks;
+    }   
+    else 
+    {
+    oppositeSide = bids;
+    }
 
+ 
+ while(!order.isFilled() && !oppositeSide.isEmpty())
+ {
+    int bestPrice= oppositeSide.firstKey();
+    Queue<Order> queue= oppositeSide.get(bestPrice);
+    while (!queue.isEmpty() && queue.peek().isFilled())
+    {
+        queue.poll();
+
+    }
+
+    if (queue.isEmpty())
+    {
+      oppositeSide.remove(bestPrice);
+      continue;
+
+    }  
+    
+    Order restingOrder =queue.peek();
+    int tradeQuantity= Math.min(restingOrder.getQuantity(),order.getQuantity());
+    long buyOrderId = (order.getSide()==Side.BUY)? order.getOrderId() :  restingOrder.getOrderId();
+    long sellOrderId= (order.getSide()==Side.SELL)? order.getOrderId() : restingOrder.getOrderId();
+
+    restingOrder.reduceQuantity(tradeQuantity);
+    order.reduceQuantity(tradeQuantity);
+    Trade trade=new Trade 
+    (
+     order.getTimestamp(),
+     buyOrderId,
+     sellOrderId,
+     bestPrice,
+     tradeQuantity);
+     trades.add(trade);
+     if (restingOrder.isFilled()){
+         queue.poll();
+         orderMap.remove(restingOrder.getOrderId());
+     }
+     
+     if (queue.isEmpty()){
+
+        oppositeSide.remove(bestPrice);
+
+     } 
+     }
+     
+     return trades;
+
+     }
 
 
 
