@@ -9,7 +9,7 @@ public class MatchingEngine{
     this.orderBook=orderBook;
 
    }
-   public List<Trade> processOrders(Order order)
+   public List<Trade> processOrder(Order order)
    {
     if (order.getType()==OrderType.LIMIT)
     {
