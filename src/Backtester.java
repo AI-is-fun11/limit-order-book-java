@@ -1,3 +1,6 @@
+
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.List;
 
 public class Backtester{
@@ -10,8 +13,10 @@ public class Backtester{
    this.sim= new OrderFlowSimulator();
  }
 
- public void run ( int numOrders)
+ public void run ( int numOrders) throws IOException
  {
+    FileWriter tradeWriter = new FileWriter("data/trades.csv");
+    tradeWriter.write("timestamp,buyOrderId,sellOrderId,price,quantity\n");
     for (int i = 0; i < numOrders; i++) {
         Order order = sim.generateRandomOrder(
             60,   // limit prob
@@ -36,6 +41,15 @@ public class Backtester{
             + " Best ask: " + orderBook.getBestAsk()
             + " Spread: " + orderBook.getSpread()
             + " Mid: " + orderBook.getMidPrice());
+        for (Trade trade : trades) {
+        tradeWriter.write(
+        trade.getTimestamp() + "," +
+        trade.getBuyOrderId() + "," +
+        trade.getSellOrderId() + "," +
+        trade.getPrice() + "," +
+        trade.getQuantity() + "\n"
+              );
+                                   }
     }
  }
 }
