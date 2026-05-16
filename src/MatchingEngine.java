@@ -3,37 +3,38 @@ import java.util.List;
 
 public class MatchingEngine{
    private final OrderBook orderBook;
-
+   private long nextOrderId=1;
    public MatchingEngine(OrderBook orderBook)
    {
     this.orderBook=orderBook;
 
    }
-   public List<Trade> processOrder(Order order)
-   {
-    if (order.getType()==OrderType.LIMIT)
-    {
-      return orderBook.addLimitOrder(order);
 
+   public long getLastOrderId() {
+    return nextOrderId - 1;
+                                }
 
+public OrderResult processOrderRequest(OrderRequest request, long timestamp){
+    
+    int price= (request.getType()==OrderType.LIMIT)? request.getPrice() : 0;
+
+    if (request.getType() == OrderType.CANCEL) {
+        boolean cancelSuccess = orderBook.cancelOrder(request.getCancelOrderId());
+        return new OrderResult(null, cancelSuccess, new ArrayList<>(),null);
     }
+     long orderId=nextOrderId++;
+     Order order =new Order(orderId,timestamp,request.getSide(),request.getType(),price,request.getQuantity());
+     List<Trade> trades;
 
-    if (order.getType()==OrderType.MARKET)
-    {
-
-     return orderBook.addMarketOrder(order);
-
-    }
-
-    if (order.getType()==OrderType.CANCEL)
-    {
-        orderBook.cancelOrder(order.getOrderId());
-        return new ArrayList<>();
-
-    }
-
-       return new ArrayList<>();
-
-   }
+     if (request.getType() == OrderType.LIMIT) {
+    trades = orderBook.addLimitOrder(order);
+     } 
+     else                {
+     trades = orderBook.addMarketOrder(order);
+                            }
+     return new OrderResult(orderId,false,trades,order.getQuantity());
+     
+    
+}
 
 }
